@@ -1,0 +1,1500 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Pet Evolution</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        .stat-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .bounce-in {
+            animation: bounceIn 0.3s ease-out;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .pulse-warning {
+            animation: pulseWarning 1s infinite;
+        }
+        
+        @keyframes pulseWarning {
+            0%, 100% { background-color: rgb(239 68 68); }
+            50% { background-color: rgb(220 38 38); }
+        }
+        
+        .shop-item {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .shop-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .evolution-glow {
+            animation: evolutionGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes evolutionGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(147, 51, 234, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(147, 51, 234, 0.8); }
+        }
+        
+        .achievement-unlock {
+            animation: achievementPop 0.8s ease-out;
+        }
+        
+        @keyframes achievementPop {
+            0% { transform: scale(0) rotate(180deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(0deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        
+        .xp-bar {
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.8s ease-out;
+        }
+        
+        .combo-indicator {
+            animation: comboFlash 0.5s ease-out;
+        }
+        
+        @keyframes comboFlash {
+            0% { background-color: rgb(251, 191, 36); transform: scale(1); }
+            50% { background-color: rgb(245, 158, 11); transform: scale(1.1); }
+            100% { background-color: rgb(251, 191, 36); transform: scale(1); }
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 min-h-full p-4">
+  <div class="max-w-6xl mx-auto"><!-- Header with Level and Evolution -->
+   <header class="text-center mb-6">
+    <h1 id="gameTitle" class="text-4xl font-bold text-purple-800 mb-2">Virtual Pet Evolution</h1>
+    <div class="flex justify-center items-center gap-4 text-lg mb-4"><span id="petName" class="text-purple-600 font-semibold">🐱 Fluffy</span> <span id="dayCounter" class="bg-purple-200 px-3 py-1 rounded-full text-purple-800 font-medium">Day 1</span> <span id="levelDisplay" class="bg-green-200 px-3 py-1 rounded-full text-green-800 font-medium">Level 1</span> <span id="evolutionStage" class="bg-blue-200 px-3 py-1 rounded-full text-blue-800 font-medium">Egg</span>
+    </div><!-- XP Bar -->
+    <div class="max-w-md mx-auto mb-4">
+     <div class="flex justify-between text-sm text-gray-600 mb-1"><span>XP Progress</span> <span id="xpDisplay">0 / 100</span>
+     </div>
+     <div class="w-full bg-gray-200 rounded-full h-4">
+      <div id="xpBar" class="xp-bar h-4 rounded-full" style="width: 0%"></div>
+     </div>
+    </div>
+   </header><!-- Notifications Area -->
+   <div id="warningContainer" class="fixed top-4 right-4 z-40 hidden">
+    <div id="warningMessage" class="bg-red-500 text-white px-4 py-3 rounded-lg text-center font-semibold pulse-warning shadow-lg">
+     ⚠️ Your pet needs attention!
+    </div>
+   </div>
+   <div id="eventContainer" class="fixed top-20 right-4 z-40 hidden">
+    <div id="eventMessage" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-4 py-3 rounded shadow-lg max-w-xs"><span id="eventText"></span>
+    </div>
+   </div>
+   <div id="achievementContainer" class="fixed top-36 right-4 z-40 hidden">
+    <div id="achievementMessage" class="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg max-w-xs achievement-unlock">
+     <div class="font-bold">
+      🏆 Achievement Unlocked!
+     </div>
+     <div id="achievementText" class="text-sm"></div>
+    </div>
+   </div>
+   <div id="comboContainer" class="fixed top-52 right-4 z-40 hidden">
+    <div id="comboMessage" class="bg-yellow-400 text-yellow-900 px-4 py-3 rounded-lg shadow-lg combo-indicator">
+     <div class="font-bold" id="comboText">
+      Combo x2!
+     </div>
+    </div>
+   </div><!-- Pet Visual with Evolution -->
+   <div class="flex justify-center mb-6">
+    <div id="petContainer" class="bg-white rounded-xl p-6 shadow-lg">
+     <div id="petVisual" class="text-center">
+      <div id="petCharacter" class="text-8xl mb-2 transition-all duration-500">
+       🥚
+      </div>
+      <div id="petMood" class="text-2xl">
+       😊
+      </div>
+      <div id="petStatus" class="text-sm text-gray-600 mt-2">
+       Ready to hatch!
+      </div>
+      <div id="petPersonality" class="text-xs text-purple-600 mt-1 font-medium"></div>
+     </div>
+    </div>
+   </div><!-- Stats Display -->
+   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6"><!-- Hunger -->
+    <div class="bg-white rounded-xl p-4 shadow-lg">
+     <div class="flex items-center justify-between mb-2"><span class="text-lg font-semibold text-gray-700">🍎 Hunger</span> <span id="hungerValue" class="text-xl font-bold text-green-600">50</span>
+     </div>
+     <div class="w-full bg-gray-200 rounded-full h-3">
+      <div id="hungerBar" class="stat-bar bg-green-500 h-3 rounded-full" style="width: 50%"></div>
+     </div>
+    </div><!-- Energy -->
+    <div class="bg-white rounded-xl p-4 shadow-lg">
+     <div class="flex items-center justify-between mb-2"><span class="text-lg font-semibold text-gray-700">⚡ Energy</span> <span id="energyValue" class="text-xl font-bold text-blue-600">50</span>
+     </div>
+     <div class="w-full bg-gray-200 rounded-full h-3">
+      <div id="energyBar" class="stat-bar bg-blue-500 h-3 rounded-full" style="width: 50%"></div>
+     </div>
+    </div><!-- Happiness -->
+    <div class="bg-white rounded-xl p-4 shadow-lg">
+     <div class="flex items-center justify-between mb-2"><span class="text-lg font-semibold text-gray-700">😊 Happiness</span> <span id="happinessValue" class="text-xl font-bold text-yellow-600">50</span>
+     </div>
+     <div class="w-full bg-gray-200 rounded-full h-3">
+      <div id="happinessBar" class="stat-bar bg-yellow-500 h-3 rounded-full" style="width: 50%"></div>
+     </div>
+    </div><!-- Cleanliness -->
+    <div class="bg-white rounded-xl p-4 shadow-lg">
+     <div class="flex items-center justify-between mb-2"><span class="text-lg font-semibold text-gray-700">🛁 Clean</span> <span id="cleanlinessValue" class="text-xl font-bold text-cyan-600">50</span>
+     </div>
+     <div class="w-full bg-gray-200 rounded-full h-3">
+      <div id="cleanlinessBar" class="stat-bar bg-cyan-500 h-3 rounded-full" style="width: 50%"></div>
+     </div>
+    </div><!-- Health -->
+    <div class="bg-white rounded-xl p-4 shadow-lg">
+     <div class="flex items-center justify-between mb-2"><span class="text-lg font-semibold text-gray-700">❤️ Health</span> <span id="healthValue" class="text-xl font-bold text-red-600">50</span>
+     </div>
+     <div class="w-full bg-gray-200 rounded-full h-3">
+      <div id="healthBar" class="stat-bar bg-red-500 h-3 rounded-full" style="width: 50%"></div>
+     </div>
+    </div>
+   </div><!-- Money, Points, and Skills Display -->
+   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl p-4 shadow-lg text-center"><span class="text-lg font-semibold text-gray-700">💰 Money</span>
+     <div id="moneyValue" class="text-2xl font-bold text-green-600">
+      $50
+     </div>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-lg text-center"><span class="text-lg font-semibold text-gray-700">⭐ Points</span>
+     <div id="pointsValue" class="text-2xl font-bold text-purple-600">
+      0
+     </div>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-lg text-center"><span class="text-lg font-semibold text-gray-700">🎯 Skills</span>
+     <div id="skillPointsValue" class="text-2xl font-bold text-orange-600">
+      0
+     </div>
+    </div>
+    <div class="bg-white rounded-xl p-4 shadow-lg text-center"><span class="text-lg font-semibold text-gray-700">👑 Prestige</span>
+     <div id="prestigeValue" class="text-2xl font-bold text-indigo-600">
+      0
+     </div>
+    </div>
+   </div><!-- Action Buttons -->
+   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6"><button id="feedBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 🍎 Feed ($6) </button> <button id="playBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 🎾 Play </button> <button id="waterBtn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 💧 Give Water ($2) </button> <button id="earnBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 💼 Work ($3s) </button> <button id="bathBtn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 🛁 Bath ($4) </button> <button id="sleepBtn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 😴 Sleep (4s) </button> <button id="exerciseBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 🏃 Exercise </button> <button id="medicineBtn" class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 💊 Medicine ($10) </button>
+   </div><!-- Menu Buttons -->
+   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"><button id="shopBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 🛒 Shop </button> <button id="skillsBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 🎯 Skills </button> <button id="achievementsBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 🏆 Achievements </button> <button id="prestigeBtn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 👑 Prestige </button>
+   </div>
+   <div class="text-center"><button id="restartBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"> 🔄 Restart Game </button>
+   </div><!-- Shop Modal -->
+   <div id="shopModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+     <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-gray-800">🛒 Pet Shop</h2><button id="closeShop" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+     </div>
+     <div id="shopItems" class="space-y-3"><!-- Shop items will be populated here -->
+     </div>
+    </div>
+   </div><!-- Skills Modal -->
+   <div id="skillsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+     <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-gray-800">🎯 Skill Tree</h2><button id="closeSkills" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+     </div>
+     <div class="mb-4 text-center"><span class="text-lg font-semibold">Available Skill Points: </span> <span id="availableSkillPoints" class="text-xl font-bold text-orange-600">0</span>
+     </div>
+     <div id="skillsList" class="space-y-3"><!-- Skills will be populated here -->
+     </div>
+    </div>
+   </div><!-- Achievements Modal -->
+   <div id="achievementsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+     <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-gray-800">🏆 Achievements</h2><button id="closeAchievements" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+     </div>
+     <div id="achievementsList" class="space-y-3"><!-- Achievements will be populated here -->
+     </div>
+    </div>
+   </div><!-- Prestige Modal -->
+   <div id="prestigeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 text-center">
+     <h2 class="text-3xl font-bold text-indigo-800 mb-4">👑 Prestige System</h2>
+     <p class="text-lg text-gray-600 mb-4">Reset your progress for permanent bonuses!</p>
+     <div class="mb-4">
+      <p class="text-sm text-gray-500 mb-2">Current Prestige Level: <span id="currentPrestige" class="font-bold">0</span></p>
+      <p class="text-sm text-gray-500 mb-2">Prestige Points: <span id="currentPrestigePoints" class="font-bold">0</span></p>
+      <p class="text-sm text-gray-500">Requires: Level 20+ and 1000+ Points</p>
+     </div>
+     <div class="flex gap-4 justify-center"><button id="confirmPrestige" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-xl"> Prestige Up! </button> <button id="closePrestige" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-xl"> Cancel </button>
+     </div>
+    </div>
+   </div><!-- Game Over Modal -->
+   <div id="gameOverModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 text-center">
+     <h2 class="text-3xl font-bold text-purple-800 mb-4">🎉 Game Complete!</h2>
+     <p class="text-lg text-gray-600 mb-2">You survived 30 days!</p>
+     <p class="text-xl font-bold text-purple-600 mb-4">Final Score: <span id="finalScore">0</span> points</p><button id="newGameBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-xl"> Start New Game </button>
+    </div>
+   </div>
+  </div>
+  <script>
+        // Game state with new features
+        let gameState = {
+            hunger: 50,
+            energy: 50,
+            happiness: 50,
+            cleanliness: 50,
+            health: 50,
+            money: 50,
+            points: 0,
+            day: 1,
+            gameEnded: false,
+            lastEventTime: Date.now(),
+            initialized: false,
+            actionCooldowns: {},
+            level: 1,
+            xp: 0,
+            evolution_stage: 0, // 0=Egg, 1=Baby, 2=Child, 3=Teen, 4=Adult, 5=Elder
+            achievements: "[]",
+            prestige_level: 0,
+            prestige_points: 0,
+            personality: "balanced",
+            item_purchase_counts: "{}",
+            skill_points: 0,
+            skills: "{}",
+            combo_count: 0,
+            last_action_time: 0
+        };
+
+        // Default config for editable features
+        const defaultConfig = {
+            pet_name: "Fluffy",
+            game_title: "Virtual Pet Evolution"
+        };
+
+        // Evolution stages
+        const evolutionStages = [
+            { name: "Egg", emoji: "🥚", level_req: 0 },
+            { name: "Baby", emoji: "🐣", level_req: 3 },
+            { name: "Child", emoji: "🐱", level_req: 8 },
+            { name: "Teen", emoji: "😸", level_req: 15 },
+            { name: "Adult", emoji: "🦁", level_req: 25 },
+            { name: "Elder", emoji: "👑", level_req: 40 }
+        ];
+
+        // Personality types
+        const personalities = {
+            playful: { name: "Playful", bonus: "play_happiness", multiplier: 1.5 },
+            lazy: { name: "Lazy", bonus: "sleep_energy", multiplier: 1.3 },
+            hungry: { name: "Hungry", bonus: "food_satisfaction", multiplier: 1.4 },
+            clean: { name: "Clean", bonus: "bath_effectiveness", multiplier: 1.6 },
+            healthy: { name: "Healthy", bonus: "health_regen", multiplier: 1.2 },
+            balanced: { name: "Balanced", bonus: "all_stats", multiplier: 1.1 }
+        };
+
+        // Rebalanced shop items (NO INFINITE MONEY EXPLOITS!)
+        const shopItems = [
+            { name: "Basic Food", price: 8, hunger: 15, energy: -2, emoji: "🍞", category: "food" },
+            { name: "Energy Drink", price: 12, energy: 10, happiness: 3, emoji: "⚡", category: "energy" }, // Net loss if used for work!
+            { name: "Toy Ball", price: 10, happiness: 12, energy: -4, emoji: "🎾", category: "fun" },
+            { name: "Vitamin Pills", price: 15, hunger: 8, energy: 6, happiness: 4, health: 8, emoji: "💊", category: "health" },
+            { name: "Gourmet Treat", price: 18, hunger: 25, happiness: 10, emoji: "🍖", category: "food" },
+            { name: "Luxury Soap", price: 14, cleanliness: 25, happiness: -3, health: 5, emoji: "🧼", category: "hygiene" },
+            { name: "Super Medicine", price: 25, health: 30, energy: 8, emoji: "🧪", category: "health" },
+            { name: "Premium Bed", price: 30, energy: 18, happiness: 8, emoji: "🛏️", category: "comfort" },
+            { name: "Fun Puzzle", price: 16, happiness: 18, energy: -6, emoji: "🧩", category: "fun" },
+            { name: "Grooming Kit", price: 20, cleanliness: 20, happiness: 6, emoji: "✂️", category: "hygiene" },
+            { name: "Power Smoothie", price: 22, hunger: 12, energy: 12, health: 10, emoji: "🥤", category: "premium" },
+            { name: "Mega Multivitamin", price: 35, hunger: 8, energy: 10, happiness: 10, health: 20, cleanliness: 8, emoji: "💎", category: "premium" }
+        ];
+
+        // Skills system
+        const availableSkills = {
+            efficient_work: { name: "Efficient Work", cost: 3, description: "Work gives +$3 extra", maxLevel: 5 },
+            happy_eater: { name: "Happy Eater", cost: 2, description: "Food gives +5 happiness", maxLevel: 3 },
+            energy_saver: { name: "Energy Saver", cost: 4, description: "Actions cost 20% less energy", maxLevel: 3 },
+            health_boost: { name: "Health Boost", cost: 3, description: "All actions give +2 health", maxLevel: 4 },
+            money_finder: { name: "Money Finder", cost: 5, description: "10% chance to find $5 on any action", maxLevel: 2 },
+            quick_recovery: { name: "Quick Recovery", cost: 4, description: "Cooldowns reduced by 1 second", maxLevel: 3 },
+            stat_master: { name: "Stat Master", cost: 6, description: "All stats decay 25% slower", maxLevel: 2 }
+        };
+
+        // Achievements system
+        const achievements = [
+            { id: "first_feed", name: "First Meal", description: "Feed your pet for the first time", reward: 50, unlocked: false },
+            { id: "level_5", name: "Growing Up", description: "Reach level 5", reward: 100, unlocked: false },
+            { id: "evolution_baby", name: "New Life", description: "Evolve to Baby stage", reward: 200, unlocked: false },
+            { id: "rich_pet", name: "Rich Pet", description: "Have $200 or more", reward: 150, unlocked: false },
+            { id: "happy_pet", name: "Pure Joy", description: "Reach 100 happiness", reward: 100, unlocked: false },
+            { id: "healthy_pet", name: "Perfect Health", description: "Reach 100 health", reward: 100, unlocked: false },
+            { id: "clean_pet", name: "Spotless", description: "Reach 100 cleanliness", reward: 100, unlocked: false },
+            { id: "shopaholic", name: "Shopaholic", description: "Buy 20 items from shop", reward: 300, unlocked: false },
+            { id: "workaholic", name: "Workaholic", description: "Work 50 times", reward: 250, unlocked: false },
+            { id: "combo_master", name: "Combo Master", description: "Achieve a 5x combo", reward: 200, unlocked: false },
+            { id: "evolution_adult", name: "Fully Grown", description: "Evolve to Adult stage", reward: 500, unlocked: false },
+            { id: "skill_master", name: "Skill Master", description: "Learn 5 different skills", reward: 400, unlocked: false },
+            { id: "prestige_first", name: "First Prestige", description: "Prestige for the first time", reward: 1000, unlocked: false },
+            { id: "survivor", name: "Survivor", description: "Survive 30 days", reward: 800, unlocked: false },
+            { id: "perfectionist", name: "Perfectionist", description: "Have all stats at 90+", reward: 600, unlocked: false }
+        ];
+
+        // Random events (enhanced)
+        const randomEvents = [
+            { text: "Your pet found a shiny coin! +$8", money: 8, chance: 0.15 },
+            { text: "A kind stranger gave your pet a treat! +15 hunger", hunger: 15, chance: 0.12 },
+            { text: "Your pet had a wonderful dream! +20 happiness", happiness: 20, chance: 0.10 },
+            { text: "Your pet got caught in the rain. -15 cleanliness", cleanliness: -15, chance: 0.08 },
+            { text: "Your pet made a new friend! +25 happiness, +10 XP", happiness: 25, xp: 10, chance: 0.06 },
+            { text: "Your pet discovered a health spring! +20 health", health: 20, chance: 0.05 },
+            { text: "A wise elder taught your pet something! +1 skill point", skill_points: 1, chance: 0.03 }
+        ];
+
+        // Data SDK handler
+        const dataHandler = {
+            onDataChanged(data) {
+                if (data.length > 0) {
+                    currentRecord = data[data.length - 1];
+                    
+                    if (!gameState.initialized) {
+                        // Parse JSON strings back to objects
+                        const loadedState = { ...currentRecord, initialized: true };
+                        if (loadedState.achievements) {
+                            try {
+                                loadedState.achievements = JSON.parse(loadedState.achievements);
+                            } catch (e) {
+                                loadedState.achievements = [];
+                            }
+                        }
+                        if (loadedState.item_purchase_counts) {
+                            try {
+                                loadedState.item_purchase_counts = JSON.parse(loadedState.item_purchase_counts);
+                            } catch (e) {
+                                loadedState.item_purchase_counts = {};
+                            }
+                        }
+                        if (loadedState.skills) {
+                            try {
+                                loadedState.skills = JSON.parse(loadedState.skills);
+                            } catch (e) {
+                                loadedState.skills = {};
+                            }
+                        }
+                        
+                        gameState = loadedState;
+                        updateUI();
+                        checkGameEnd();
+                    }
+                }
+            }
+        };
+
+        // Initialize SDKs
+        async function initializeSDKs() {
+            const initResult = await window.dataSdk.init(dataHandler);
+            if (!initResult.isOk) {
+                console.error("Failed to initialize data SDK");
+            }
+
+            if (window.elementSdk) {
+                await window.elementSdk.init({
+                    defaultConfig,
+                    onConfigChange: async (config) => {
+                        const petNameElement = document.getElementById('petName');
+                        const gameTitleElement = document.getElementById('gameTitle');
+                        
+                        if (petNameElement) {
+                            petNameElement.textContent = `🐱 ${config.pet_name || defaultConfig.pet_name}`;
+                        }
+                        if (gameTitleElement) {
+                            gameTitleElement.textContent = config.game_title || defaultConfig.game_title;
+                        }
+                    },
+                    mapToCapabilities: () => ({
+                        recolorables: [],
+                        borderables: [],
+                        fontEditable: undefined,
+                        fontSizeable: undefined
+                    }),
+                    mapToEditPanelValues: (config) => new Map([
+                        ["pet_name", config.pet_name || defaultConfig.pet_name],
+                        ["game_title", config.game_title || defaultConfig.game_title]
+                    ])
+                });
+            }
+        }
+
+        // Save game state
+        let currentRecord = null;
+        
+        async function saveGameState() {
+            const saveData = {
+                ...gameState,
+                lastEventTime: Date.now(),
+                // Convert objects to JSON strings for storage
+                achievements: JSON.stringify(gameState.achievements || []),
+                item_purchase_counts: JSON.stringify(gameState.item_purchase_counts || {}),
+                skills: JSON.stringify(gameState.skills || {})
+            };
+            
+            if (currentRecord) {
+                const result = await window.dataSdk.update({
+                    ...saveData,
+                    __backendId: currentRecord.__backendId
+                });
+                if (!result.isOk) {
+                    console.error("Failed to update game state");
+                }
+            } else {
+                const result = await window.dataSdk.create(saveData);
+                if (!result.isOk) {
+                    console.error("Failed to save game state");
+                }
+            }
+        }
+
+        // XP and leveling system
+        function getXPRequired(level) {
+            return Math.floor(100 * Math.pow(1.2, level - 1));
+        }
+
+        function gainXP(amount) {
+            gameState.xp += amount;
+            
+            while (gameState.xp >= getXPRequired(gameState.level)) {
+                gameState.xp -= getXPRequired(gameState.level);
+                gameState.level++;
+                gameState.skill_points++;
+                
+                showFloatingText(`Level Up! ${gameState.level}`, "text-green-600");
+                checkEvolution();
+                checkAchievements();
+            }
+        }
+
+        // Evolution system
+        function checkEvolution() {
+            const currentStage = gameState.evolution_stage;
+            const newStage = evolutionStages.findIndex(stage => 
+                gameState.level >= stage.level_req && 
+                evolutionStages.indexOf(stage) > currentStage
+            );
+            
+            if (newStage > currentStage && newStage !== -1) {
+                gameState.evolution_stage = newStage;
+                const stage = evolutionStages[newStage];
+                
+                document.getElementById('petContainer').classList.add('evolution-glow');
+                setTimeout(() => {
+                    document.getElementById('petContainer').classList.remove('evolution-glow');
+                }, 2000);
+                
+                showFloatingText(`Evolved to ${stage.name}!`, "text-purple-600");
+                
+                // Evolution bonuses
+                gameState.points += newStage * 100;
+                gameState.skill_points += Math.floor(newStage / 2);
+                
+                checkAchievements();
+            }
+        }
+
+        // Personality development
+        function updatePersonality() {
+            const actions = gameState.item_purchase_counts || {};
+            let maxCategory = "balanced";
+            let maxCount = 0;
+            
+            const categories = {
+                food: ["Basic Food", "Gourmet Treat"],
+                fun: ["Toy Ball", "Fun Puzzle"],
+                hygiene: ["Luxury Soap", "Grooming Kit"],
+                health: ["Vitamin Pills", "Super Medicine"],
+                energy: ["Energy Drink", "Power Smoothie"]
+            };
+            
+            Object.entries(categories).forEach(([category, items]) => {
+                const count = items.reduce((sum, item) => sum + (actions[item] || 0), 0);
+                if (count > maxCount) {
+                    maxCount = count;
+                    maxCategory = category === "fun" ? "playful" : 
+                                 category === "energy" ? "lazy" :
+                                 category === "food" ? "hungry" :
+                                 category === "hygiene" ? "clean" :
+                                 category === "health" ? "healthy" : "balanced";
+                }
+            });
+            
+            if (gameState.personality !== maxCategory && maxCount > 5) {
+                gameState.personality = maxCategory;
+                showFloatingText(`Personality: ${personalities[maxCategory].name}!`, "text-blue-600");
+            }
+        }
+
+        // Combo system
+        function checkCombo() {
+            const now = Date.now();
+            if (now - gameState.last_action_time < 3000) { // 3 seconds for combo
+                gameState.combo_count++;
+                if (gameState.combo_count >= 2) {
+                    showCombo(gameState.combo_count);
+                    return gameState.combo_count;
+                }
+            } else {
+                gameState.combo_count = 1;
+            }
+            gameState.last_action_time = now;
+            return 1;
+        }
+
+        function showCombo(count) {
+            const container = document.getElementById('comboContainer');
+            const message = document.getElementById('comboText');
+            
+            message.textContent = `Combo x${count}!`;
+            container.classList.remove('hidden');
+            
+            setTimeout(() => {
+                container.classList.add('hidden');
+            }, 2000);
+        }
+
+        // Achievement system
+        function checkAchievements() {
+            if (!gameState.achievements) gameState.achievements = [];
+            
+            achievements.forEach(achievement => {
+                if (gameState.achievements.includes(achievement.id)) return;
+                
+                let unlocked = false;
+                
+                switch (achievement.id) {
+                    case "first_feed":
+                        unlocked = (gameState.item_purchase_counts && gameState.item_purchase_counts["Basic Food"]) || false;
+                        break;
+                    case "level_5":
+                        unlocked = gameState.level >= 5;
+                        break;
+                    case "evolution_baby":
+                        unlocked = gameState.evolution_stage >= 1;
+                        break;
+                    case "rich_pet":
+                        unlocked = gameState.money >= 200;
+                        break;
+                    case "happy_pet":
+                        unlocked = gameState.happiness >= 100;
+                        break;
+                    case "healthy_pet":
+                        unlocked = gameState.health >= 100;
+                        break;
+                    case "clean_pet":
+                        unlocked = gameState.cleanliness >= 100;
+                        break;
+                    case "shopaholic":
+                        const totalPurchases = Object.values(gameState.item_purchase_counts || {}).reduce((a, b) => a + b, 0);
+                        unlocked = totalPurchases >= 20;
+                        break;
+                    case "combo_master":
+                        unlocked = gameState.combo_count >= 5;
+                        break;
+                    case "evolution_adult":
+                        unlocked = gameState.evolution_stage >= 4;
+                        break;
+                    case "skill_master":
+                        unlocked = Object.keys(gameState.skills || {}).length >= 5;
+                        break;
+                    case "survivor":
+                        unlocked = gameState.day >= 30;
+                        break;
+                    case "perfectionist":
+                        unlocked = gameState.hunger >= 90 && gameState.energy >= 90 && 
+                                  gameState.happiness >= 90 && gameState.cleanliness >= 90 && 
+                                  gameState.health >= 90;
+                        break;
+                }
+                
+                if (unlocked) {
+                    gameState.achievements.push(achievement.id);
+                    gameState.points += achievement.reward;
+                    showAchievement(achievement);
+                }
+            });
+        }
+
+        function showAchievement(achievement) {
+            const container = document.getElementById('achievementContainer');
+            const text = document.getElementById('achievementText');
+            
+            text.textContent = `${achievement.name}: +${achievement.reward} points!`;
+            container.classList.remove('hidden');
+            
+            setTimeout(() => {
+                container.classList.add('hidden');
+            }, 4000);
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Basic stats
+            document.getElementById('hungerValue').textContent = Math.max(0, Math.round(gameState.hunger));
+            document.getElementById('energyValue').textContent = Math.max(0, Math.round(gameState.energy));
+            document.getElementById('happinessValue').textContent = Math.max(0, Math.round(gameState.happiness));
+            document.getElementById('cleanlinessValue').textContent = Math.max(0, Math.round(gameState.cleanliness));
+            document.getElementById('healthValue').textContent = Math.max(0, Math.round(gameState.health));
+            document.getElementById('moneyValue').textContent = `$${gameState.money}`;
+            document.getElementById('pointsValue').textContent = gameState.points;
+            document.getElementById('dayCounter').textContent = `Day ${gameState.day}`;
+            document.getElementById('skillPointsValue').textContent = gameState.skill_points || 0;
+            document.getElementById('prestigeValue').textContent = gameState.prestige_level || 0;
+
+            // Level and XP
+            document.getElementById('levelDisplay').textContent = `Level ${gameState.level}`;
+            const xpRequired = getXPRequired(gameState.level);
+            document.getElementById('xpDisplay').textContent = `${gameState.xp} / ${xpRequired}`;
+            document.getElementById('xpBar').style.width = `${(gameState.xp / xpRequired) * 100}%`;
+
+            // Evolution
+            const stage = evolutionStages[gameState.evolution_stage] || evolutionStages[0];
+            document.getElementById('evolutionStage').textContent = stage.name;
+
+            // Progress bars
+            document.getElementById('hungerBar').style.width = `${Math.max(0, Math.min(100, gameState.hunger))}%`;
+            document.getElementById('energyBar').style.width = `${Math.max(0, Math.min(100, gameState.energy))}%`;
+            document.getElementById('happinessBar').style.width = `${Math.max(0, Math.min(100, gameState.happiness))}%`;
+            document.getElementById('cleanlinessBar').style.width = `${Math.max(0, Math.min(100, gameState.cleanliness))}%`;
+            document.getElementById('healthBar').style.width = `${Math.max(0, Math.min(100, gameState.health))}%`;
+
+            updatePetVisual();
+            checkWarnings();
+            updateButtonStates();
+        }
+
+        // Update pet visual
+        function updatePetVisual() {
+            const petCharacter = document.getElementById('petCharacter');
+            const petMood = document.getElementById('petMood');
+            const petStatus = document.getElementById('petStatus');
+            const petPersonality = document.getElementById('petPersonality');
+            
+            const stage = evolutionStages[gameState.evolution_stage] || evolutionStages[0];
+            let character = stage.emoji;
+            let mood = '😊';
+            let status = 'Feeling good!';
+            
+            // Status based on stats
+            if (gameState.hunger < 20 && gameState.energy < 20) {
+                mood = '💀';
+                status = 'Very sick!';
+                petCharacter.classList.add('shake');
+            } else if (gameState.hunger < 30 || gameState.energy < 20) {
+                mood = '😰';
+                status = 'Not feeling well...';
+            } else if (gameState.happiness < 30) {
+                mood = '😢';
+                status = 'Feeling sad...';
+            } else if (gameState.hunger > 80 && gameState.energy > 80 && gameState.happiness > 80) {
+                mood = '🤩';
+                status = 'Super happy!';
+            } else if (gameState.energy < 40) {
+                mood = '😴';
+                status = 'Getting sleepy...';
+            }
+            
+            petCharacter.textContent = character;
+            petMood.textContent = mood;
+            petStatus.textContent = status;
+            
+            // Show personality
+            const personality = personalities[gameState.personality] || personalities.balanced;
+            petPersonality.textContent = `Personality: ${personality.name}`;
+            
+            setTimeout(() => {
+                petCharacter.classList.remove('shake');
+            }, 500);
+        }
+
+        // Check warnings
+        function checkWarnings() {
+            const warningContainer = document.getElementById('warningContainer');
+            const warningMessage = document.getElementById('warningMessage');
+            
+            if (gameState.hunger < 30 || gameState.energy < 20 || gameState.health < 30) {
+                let warnings = [];
+                if (gameState.hunger < 30) warnings.push("hungry");
+                if (gameState.energy < 20) warnings.push("tired");
+                if (gameState.health < 30) warnings.push("sick");
+                
+                warningMessage.textContent = `⚠️ Your pet is ${warnings.join(', ')}!`;
+                warningContainer.classList.remove('hidden');
+            } else {
+                warningContainer.classList.add('hidden');
+            }
+        }
+
+        // Cooldown system
+        function isOnCooldown(action) {
+            const now = Date.now();
+            const cooldownTime = gameState.actionCooldowns[action] || 0;
+            return now < cooldownTime;
+        }
+
+        function setCooldown(action, seconds) {
+            // Apply quick recovery skill
+            const quickRecoveryLevel = (gameState.skills && gameState.skills.quick_recovery) || 0;
+            const reducedSeconds = Math.max(1, seconds - quickRecoveryLevel);
+            gameState.actionCooldowns[action] = Date.now() + (reducedSeconds * 1000);
+        }
+
+        function getRemainingCooldown(action) {
+            const now = Date.now();
+            const cooldownTime = gameState.actionCooldowns[action] || 0;
+            return Math.max(0, Math.ceil((cooldownTime - now) / 1000));
+        }
+
+        // Update button states
+        function updateButtonStates() {
+            const buttons = {
+                feedBtn: gameState.money < 6,
+                waterBtn: gameState.money < 2,
+                earnBtn: gameState.energy < 15 || isOnCooldown('work'),
+                bathBtn: gameState.money < 4,
+                sleepBtn: isOnCooldown('sleep'),
+                exerciseBtn: gameState.energy < 20,
+                medicineBtn: gameState.money < 10
+            };
+
+            const workCooldown = getRemainingCooldown('work');
+            const sleepCooldown = getRemainingCooldown('sleep');
+            
+            if (workCooldown > 0) {
+                document.getElementById('earnBtn').innerHTML = `💼 Work (${workCooldown}s)`;
+            } else {
+                document.getElementById('earnBtn').innerHTML = '💼 Work ($3s)';
+            }
+            
+            if (sleepCooldown > 0) {
+                document.getElementById('sleepBtn').innerHTML = `😴 Sleep (${sleepCooldown}s)`;
+            } else {
+                document.getElementById('sleepBtn').innerHTML = '😴 Sleep (4s)';
+            }
+            
+            Object.keys(buttons).forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.disabled = buttons[btnId];
+                    if (btn.disabled) {
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+            });
+        }
+
+        // Show floating text
+        function showFloatingText(text, colorClass) {
+            const floatingText = document.createElement('div');
+            floatingText.textContent = text;
+            floatingText.className = `fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${colorClass} font-bold text-xl pointer-events-none z-50`;
+            floatingText.style.animation = 'floatUp 2s ease-out forwards';
+            
+            document.body.appendChild(floatingText);
+            
+            setTimeout(() => {
+                if (document.body.contains(floatingText)) {
+                    document.body.removeChild(floatingText);
+                }
+            }, 2000);
+        }
+
+        // Add floating animation CSS
+        const style = document.createElement('style');
+        style.textContent += `
+            @keyframes floatUp {
+                0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                100% { opacity: 0; transform: translate(-50%, -150%) scale(1.2); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Apply skill bonuses
+        function applySkillBonuses(action, baseValues) {
+            const skills = gameState.skills || {};
+            let values = { ...baseValues };
+            
+            // Apply skill bonuses
+            if (skills.efficient_work && action === 'work') {
+                values.money = (values.money || 0) + (skills.efficient_work * 3);
+            }
+            if (skills.happy_eater && (action === 'feed' || action === 'water')) {
+                values.happiness = (values.happiness || 0) + 5;
+            }
+            if (skills.energy_saver) {
+                if (values.energy && values.energy < 0) {
+                    values.energy = Math.ceil(values.energy * (1 - skills.energy_saver * 0.2));
+                }
+            }
+            if (skills.health_boost) {
+                values.health = (values.health || 0) + (skills.health_boost * 2);
+            }
+            if (skills.money_finder && Math.random() < 0.1) {
+                values.money = (values.money || 0) + 5;
+                showFloatingText("Found $5!", "text-green-600");
+            }
+            
+            return values;
+        }
+
+        // Game actions (rebalanced)
+        function feed() {
+            if (gameState.money >= 6) {
+                const combo = checkCombo();
+                let values = applySkillBonuses('feed', {
+                    hunger: 12 * combo,
+                    energy: -3,
+                    money: -6
+                });
+                
+                Object.entries(values).forEach(([stat, change]) => {
+                    if (stat === 'money') {
+                        gameState[stat] += change;
+                    } else {
+                        gameState[stat] = Math.min(100, Math.max(0, gameState[stat] + change));
+                    }
+                });
+                
+                gainXP(5 * combo);
+                
+                // Track purchases
+                if (!gameState.item_purchase_counts) gameState.item_purchase_counts = {};
+                gameState.item_purchase_counts["Basic Food"] = (gameState.item_purchase_counts["Basic Food"] || 0) + 1;
+                
+                document.getElementById('feedBtn').classList.add('bounce-in');
+                setTimeout(() => document.getElementById('feedBtn').classList.remove('bounce-in'), 300);
+                
+                updateUI();
+                saveGameState();
+                advanceDay();
+                checkAchievements();
+            }
+        }
+
+        function play() {
+            const combo = checkCombo();
+            let values = applySkillBonuses('play', {
+                happiness: 15 * combo,
+                energy: -8,
+                hunger: -6,
+                cleanliness: -4
+            });
+            
+            Object.entries(values).forEach(([stat, change]) => {
+                gameState[stat] = Math.min(100, Math.max(0, gameState[stat] + change));
+            });
+            
+            gainXP(8 * combo);
+            
+            document.getElementById('playBtn').classList.add('bounce-in');
+            setTimeout(() => document.getElementById('playBtn').classList.remove('bounce-in'), 300);
+            
+            updateUI();
+            saveGameState();
+            advanceDay();
+        }
+
+        function giveWater() {
+            if (gameState.money >= 2) {
+                const combo = checkCombo();
+                let values = applySkillBonuses('water', {
+                    hunger: 8 * combo,
+                    health: 4 * combo,
+                    money: -2
+                });
+                
+                Object.entries(values).forEach(([stat, change]) => {
+                    if (stat === 'money') {
+                        gameState[stat] += change;
+                    } else {
+                        gameState[stat] = Math.min(100, Math.max(0, gameState[stat] + change));
+                    }
+                });
+                
+                gainXP(3 * combo);
+                
+                document.getElementById('waterBtn').classList.add('bounce-in');
+                setTimeout(() => document.getElementById('waterBtn').classList.remove('bounce-in'), 300);
+                
+                updateUI();
+                saveGameState();
+                advanceDay();
+            }
+        }
+
+        function earnMoney() {
+            if (gameState.energy >= 15 && !isOnCooldown('work')) {
+                const combo = checkCombo();
+                let values = applySkillBonuses('work', {
+                    money: 8 * combo, // Reduced from 10 to 8
+                    energy: -15, // Increased from -10 to -15
+                    happiness: -4
+                });
+                
+                Object.entries(values).forEach(([stat, change]) => {
+                    if (stat === 'money') {
+                        gameState[stat] += change;
+                    } else {
+                        gameState[stat] = Math.min(100, Math.max(0, gameState[stat] + change));
+                    }
+                });
+                
+                setCooldown('work', 3);
+                gainXP(6 * combo);
+                
+                document.getElementById('earnBtn').classList.add('bounce-in');
+                setTimeout(() => document.getElementById('earnBtn').classList.remove('bounce-in'), 300);
+                
+                showFloatingText(`+$${values.money}`, "text-green-600");
+                updateUI();
+                saveGameState();
+                advanceDay();
+            }
+        }
+
+        function bath() {
+            if (gameState.money >= 4) {
+                const combo = checkCombo();
+                let values = applySkillBonuses('bath', {
+                    cleanliness: 25 * combo,
+                    happiness: -6,
+                    health: 6 * combo,
+                    money: -4
+                });
+                
+                Object.entries(values).forEach(([stat, change]) => {
+                    if (stat === 'money') {
+                        gameState[stat] += change;
+                    } else {
+                        gameState[stat] = Math.min(100, Math.max(0, gameState[stat] + change));
+                    }
+                });
+                
+                gainXP(7 * combo);
+                
+                document.getElementById('bathBtn').classList.add('bounce-in');
+                setTimeout(() => document.getElementById('bathBtn').classList.remove('bounce-in'), 300);
+                
+                updateUI();
+                saveGameState();
+                advanceDay();
+            }
+        }
+
+        function sleep() {
+            if (!isOnCooldown('sleep')) {
+                const combo = checkCombo();
+                let values = applySkillBonuses('sleep', {
+                    energy: 30 * combo,
+                    health: 8 * combo,
+                    hunger: -10
+                });
+                
+                Object.entries(values).forEach(([stat, change]) => {
+                    gameState[stat] = Math.min(100, Math.max(0, gameState[stat] + change));
+                });
+                
+                setCooldown('sleep', 4);
+                gainXP(10 * combo);
+                
+                document.getElementById('sleepBtn').classList.add('bounce-in');
+                setTimeout(() => document.getElementById('sleepBtn').classList.remove('bounce-in'), 300);
+                
+                updateUI();
+                saveGameState();
+                advanceDay();
+            }
+        }
+
+        function exercise() {
+            if (gameState.energy >= 20) {
+                const combo = checkCombo();
+                let values = applySkillBonuses('exercise', {
+                    health: 12 * combo,
+                    happiness: 10 * combo,
+                    energy: -20,
+                    hunger: -12,
+                    cleanliness: -10
+                });
+                
+                Object.entries(values).forEach(([stat, change]) => {
+                    gameState[stat] = Math.min(100, Math.max(0, gameState[stat] + change));
+                });
+                
+                gainXP(12 * combo);
+                
+                document.getElementById('exerciseBtn').classList.add('bounce-in');
+                setTimeout(() => document.getElementById('exerciseBtn').classList.remove('bounce-in'), 300);
+                
+                updateUI();
+                saveGameState();
+                advanceDay();
+            }
+        }
+
+        function medicine() {
+            if (gameState.money >= 10) {
+                const combo = checkCombo();
+                let values = applySkillBonuses('medicine', {
+                    health: 25 * combo,
+                    energy: 8 * combo,
+                    happiness: -4,
+                    money: -10
+                });
+                
+                Object.entries(values).forEach(([stat, change]) => {
+                    if (stat === 'money') {
+                        gameState[stat] += change;
+                    } else {
+                        gameState[stat] = Math.min(100, Math.max(0, gameState[stat] + change));
+                    }
+                });
+                
+                gainXP(8 * combo);
+                
+                document.getElementById('medicineBtn').classList.add('bounce-in');
+                setTimeout(() => document.getElementById('medicineBtn').classList.remove('bounce-in'), 300);
+                
+                updateUI();
+                saveGameState();
+                advanceDay();
+            }
+        }
+
+        // Shop functionality
+        function openShop() {
+            const modal = document.getElementById('shopModal');
+            const itemsContainer = document.getElementById('shopItems');
+            
+            itemsContainer.innerHTML = '';
+            
+            shopItems.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'shop-item bg-gray-50 p-4 rounded-lg border cursor-pointer';
+                
+                const canAfford = gameState.money >= item.price;
+                if (!canAfford) {
+                    itemDiv.classList.add('opacity-50');
+                }
+                
+                let effects = [];
+                if (item.hunger) effects.push(`${item.hunger > 0 ? '+' : ''}${item.hunger} hunger`);
+                if (item.energy) effects.push(`${item.energy > 0 ? '+' : ''}${item.energy} energy`);
+                if (item.happiness) effects.push(`${item.happiness > 0 ? '+' : ''}${item.happiness} happiness`);
+                if (item.cleanliness) effects.push(`${item.cleanliness > 0 ? '+' : ''}${item.cleanliness} clean`);
+                if (item.health) effects.push(`${item.health > 0 ? '+' : ''}${item.health} health`);
+                
+                itemDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold text-gray-800">${item.emoji} ${item.name}</div>
+                            <div class="text-sm text-gray-600">${effects.join(', ')}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-green-600">$${item.price}</div>
+                            ${canAfford ? '<div class="text-xs text-green-500">Can afford</div>' : '<div class="text-xs text-red-500">Too expensive</div>'}
+                        </div>
+                    </div>
+                `;
+                
+                if (canAfford) {
+                    itemDiv.addEventListener('click', () => buyItem(item));
+                }
+                
+                itemsContainer.appendChild(itemDiv);
+            });
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeShop() {
+            const modal = document.getElementById('shopModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function buyItem(item) {
+            if (gameState.money >= item.price) {
+                gameState.money -= item.price;
+                if (item.hunger) gameState.hunger = Math.min(100, Math.max(0, gameState.hunger + item.hunger));
+                if (item.energy) gameState.energy = Math.min(100, Math.max(0, gameState.energy + item.energy));
+                if (item.happiness) gameState.happiness = Math.min(100, Math.max(0, gameState.happiness + item.happiness));
+                if (item.cleanliness) gameState.cleanliness = Math.min(100, Math.max(0, gameState.cleanliness + item.cleanliness));
+                if (item.health) gameState.health = Math.min(100, Math.max(0, gameState.health + item.health));
+                
+                // Track purchases
+                if (!gameState.item_purchase_counts) gameState.item_purchase_counts = {};
+                gameState.item_purchase_counts[item.name] = (gameState.item_purchase_counts[item.name] || 0) + 1;
+                
+                gainXP(5);
+                updatePersonality();
+                
+                showFloatingText(`Bought ${item.name}!`, "text-purple-600");
+                updateUI();
+                saveGameState();
+                closeShop();
+                advanceDay();
+                checkAchievements();
+            }
+        }
+
+        // Skills functionality
+        function openSkills() {
+            const modal = document.getElementById('skillsModal');
+            const skillsList = document.getElementById('skillsList');
+            const availablePoints = document.getElementById('availableSkillPoints');
+            
+            availablePoints.textContent = gameState.skill_points || 0;
+            skillsList.innerHTML = '';
+            
+            Object.entries(availableSkills).forEach(([skillId, skill]) => {
+                const currentLevel = (gameState.skills && gameState.skills[skillId]) || 0;
+                const canUpgrade = currentLevel < skill.maxLevel && gameState.skill_points >= skill.cost;
+                
+                const skillDiv = document.createElement('div');
+                skillDiv.className = `bg-gray-50 p-4 rounded-lg border ${canUpgrade ? 'cursor-pointer hover:bg-gray-100' : 'opacity-50'}`;
+                
+                skillDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold text-gray-800">${skill.name}</div>
+                            <div class="text-sm text-gray-600">${skill.description}</div>
+                            <div class="text-xs text-blue-600">Level: ${currentLevel}/${skill.maxLevel}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-orange-600">${skill.cost} SP</div>
+                            ${canUpgrade ? '<div class="text-xs text-green-500">Can upgrade</div>' : '<div class="text-xs text-red-500">Cannot upgrade</div>'}
+                        </div>
+                    </div>
+                `;
+                
+                if (canUpgrade) {
+                    skillDiv.addEventListener('click', () => upgradeSkill(skillId, skill));
+                }
+                
+                skillsList.appendChild(skillDiv);
+            });
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSkills() {
+            const modal = document.getElementById('skillsModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function upgradeSkill(skillId, skill) {
+            if (gameState.skill_points >= skill.cost) {
+                if (!gameState.skills) gameState.skills = {};
+                gameState.skills[skillId] = (gameState.skills[skillId] || 0) + 1;
+                gameState.skill_points -= skill.cost;
+                
+                showFloatingText(`${skill.name} upgraded!`, "text-orange-600");
+                updateUI();
+                saveGameState();
+                closeSkills();
+                checkAchievements();
+            }
+        }
+
+        // Achievements functionality
+        function openAchievements() {
+            const modal = document.getElementById('achievementsModal');
+            const achievementsList = document.getElementById('achievementsList');
+            
+            achievementsList.innerHTML = '';
+            
+            achievements.forEach(achievement => {
+                const unlocked = gameState.achievements && gameState.achievements.includes(achievement.id);
+                
+                const achievementDiv = document.createElement('div');
+                achievementDiv.className = `p-4 rounded-lg border ${unlocked ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`;
+                
+                achievementDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold ${unlocked ? 'text-green-800' : 'text-gray-600'}">${unlocked ? '🏆' : '🔒'} ${achievement.name}</div>
+                            <div class="text-sm ${unlocked ? 'text-green-600' : 'text-gray-500'}">${achievement.description}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold ${unlocked ? 'text-green-600' : 'text-gray-400'}">+${achievement.reward}</div>
+                            <div class="text-xs ${unlocked ? 'text-green-500' : 'text-gray-400'}">${unlocked ? 'Unlocked!' : 'Locked'}</div>
+                        </div>
+                    </div>
+                `;
+                
+                achievementsList.appendChild(achievementDiv);
+            });
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeAchievements() {
+            const modal = document.getElementById('achievementsModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Prestige functionality
+        function openPrestige() {
+            const modal = document.getElementById('prestigeModal');
+            const currentPrestige = document.getElementById('currentPrestige');
+            const currentPrestigePoints = document.getElementById('currentPrestigePoints');
+            const confirmBtn = document.getElementById('confirmPrestige');
+            
+            currentPrestige.textContent = gameState.prestige_level || 0;
+            currentPrestigePoints.textContent = gameState.prestige_points || 0;
+            
+            const canPrestige = gameState.level >= 20 && gameState.points >= 1000;
+            confirmBtn.disabled = !canPrestige;
+            if (!canPrestige) {
+                confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closePrestige() {
+            const modal = document.getElementById('prestigeModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmPrestige() {
+            if (gameState.level >= 20 && gameState.points >= 1000) {
+                // Calculate prestige points
+                const prestigePoints = Math.floor(gameState.points / 100) + gameState.level;
+                
+                // Reset most stats but keep prestige bonuses
+                const newState = {
+                    hunger: 50,
+                    energy: 50,
+                    happiness: 50,
+                    cleanliness: 50,
+                    health: 50,
+                    money: 50 + (gameState.prestige_level * 20), // Prestige bonus
+                    points: 0,
+                    day: 1,
+                    gameEnded: false,
+                    lastEventTime: Date.now(),
+                    initialized: true,
+                    actionCooldowns: {},
+                    level: 1,
+                    xp: 0,
+                    evolution_stage: 0,
+                    achievements: [],
+                    prestige_level: (gameState.prestige_level || 0) + 1,
+                    prestige_points: (gameState.prestige_points || 0) + prestigePoints,
+                    personality: "balanced",
+                    item_purchase_counts: {},
+                    skill_points: gameState.prestige_level || 0, // Keep some skill points
+                    skills: {},
+                    combo_count: 0,
+                    last_action_time: 0
+                };
+                
+                gameState = newState;
+                
+                showFloatingText(`Prestige Level ${gameState.prestige_level}!`, "text-indigo-600");
+                updateUI();
+                saveGameState();
+                closePrestige();
+            }
+        }
+
+        // Random events
+        function triggerRandomEvent() {
+            randomEvents.forEach(event => {
+                if (Math.random() < event.chance) {
+                    if (event.hunger) gameState.hunger = Math.min(100, Math.max(0, gameState.hunger + event.hunger));
+                    if (event.energy) gameState.energy = Math.min(100, Math.max(0, gameState.energy + event.energy));
+                    if (event.happiness) gameState.happiness = Math.min(100, Math.max(0, gameState.happiness + event.happiness));
+                    if (event.cleanliness) gameState.cleanliness = Math.min(100, Math.max(0, gameState.cleanliness + event.cleanliness));
+                    if (event.health) gameState.health = Math.min(100, Math.max(0, gameState.health + event.health));
+                    if (event.money) gameState.money = Math.max(0, gameState.money + event.money);
+                    if (event.xp) gainXP(event.xp);
+                    if (event.skill_points) gameState.skill_points = (gameState.skill_points || 0) + event.skill_points;
+                    
+                    showEvent(event.text);
+                    updateUI();
+                    saveGameState();
+                }
+            });
+        }
+
+        function showEvent(text) {
+            const eventContainer = document.getElementById('eventContainer');
+            const eventText = document.getElementById('eventText');
+            
+            eventText.textContent = text;
+            eventContainer.classList.remove('hidden');
+            
+            setTimeout(() => {
+                eventContainer.classList.add('hidden');
+            }, 4000);
+        }
+
+        // Day advancement with stat decay
+        function advanceDay() {
+            triggerRandomEvent();
+            
+            if (Math.random() < 0.15) { // 15% chance to advance day
+                gameState.day++;
+                showFloatingText(`Day ${gameState.day}`, "text-blue-600");
+                
+                // Stat decay (affected by stat master skill)
+                const decayMultiplier = (gameState.skills && gameState.skills.stat_master) ? 0.75 : 1.0;
+                
+                gameState.hunger = Math.max(0, gameState.hunger - (3 * decayMultiplier));
+                gameState.energy = Math.max(0, gameState.energy - (2 * decayMultiplier));
+                gameState.happiness = Math.max(0, gameState.happiness - (2 * decayMultiplier));
+                gameState.cleanliness = Math.max(0, gameState.cleanliness - (1 * decayMultiplier));
+                
+                // Faster decay if pet is unhappy or unhealthy
+                if (gameState.happiness < 50 || gameState.health < 50) {
+                    gameState.hunger = Math.max(0, gameState.hunger - 2);
+                    gameState.energy = Math.max(0, gameState.energy - 2);
+                }
+                
+                updateUI();
+                saveGameState();
+                checkGameEnd();
+                checkAchievements();
+            }
+        }
+
+        // Check game end
+        function checkGameEnd() {
+            if (gameState.day > 30 && !gameState.gameEnded) {
+                gameState.gameEnded = true;
+                showGameOver();
+            }
+        }
+
+        function showGameOver() {
+            const modal = document.getElementById('gameOverModal');
+            const finalScore = document.getElementById('finalScore');
+            
+            finalScore.textContent = gameState.points;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // Restart game
+        function restartGame() {
+            gameState = {
+                hunger: 50,
+                energy: 50,
+                happiness: 50,
+                cleanliness: 50,
+                health: 50,
+                money: 50,
+                points: 0,
+                day: 1,
+                gameEnded: false,
+                lastEventTime: Date.now(),
+                initialized: true,
+                actionCooldowns: {},
+                level: 1,
+                xp: 0,
+                evolution_stage: 0,
+                achievements: [],
+                prestige_level: 0,
+                prestige_points: 0,
+                personality: "balanced",
+                item_purchase_counts: {},
+                skill_points: 0,
+                skills: {},
+                combo_count: 0,
+                last_action_time: 0
+            };
+            
+            updateUI();
+            saveGameState();
+            
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.remove('flex');
+        }
+
+        // Event listeners
+        document.getElementById('feedBtn').addEventListener('click', feed);
+        document.getElementById('playBtn').addEventListener('click', play);
+        document.getElementById('waterBtn').addEventListener('click', giveWater);
+        document.getElementById('earnBtn').addEventListener('click', earnMoney);
+        document.getElementById('bathBtn').addEventListener('click', bath);
+        document.getElementById('sleepBtn').addEventListener('click', sleep);
+        document.getElementById('exerciseBtn').addEventListener('click', exercise);
+        document.getElementById('medicineBtn').addEventListener('click', medicine);
+        document.getElementById('shopBtn').addEventListener('click', openShop);
+        document.getElementById('skillsBtn').addEventListener('click', openSkills);
+        document.getElementById('achievementsBtn').addEventListener('click', openAchievements);
+        document.getElementById('prestigeBtn').addEventListener('click', openPrestige);
+        document.getElementById('restartBtn').addEventListener('click', restartGame);
+        document.getElementById('newGameBtn').addEventListener('click', restartGame);
+
+        // Modal close buttons
+        document.getElementById('closeShop').addEventListener('click', closeShop);
+        document.getElementById('closeSkills').addEventListener('click', closeSkills);
+        document.getElementById('closeAchievements').addEventListener('click', closeAchievements);
+        document.getElementById('closePrestige').addEventListener('click', closePrestige);
+        document.getElementById('confirmPrestige').addEventListener('click', confirmPrestige);
+
+        // Close modals when clicking outside
+        ['shopModal', 'skillsModal', 'achievementsModal', 'prestigeModal'].forEach(modalId => {
+            document.getElementById(modalId).addEventListener('click', (e) => {
+                if (e.target.id === modalId) {
+                    document.getElementById(modalId).classList.add('hidden');
+                    document.getElementById(modalId).classList.remove('flex');
+                }
+            });
+        });
+
+        // Update cooldown timers every second
+        setInterval(() => {
+            updateButtonStates();
+        }, 1000);
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeSDKs();
+            updateUI();
+        });
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'996f4d2cf76a7287',t:'MTc2MTg3MzMyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
